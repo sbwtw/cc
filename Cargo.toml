@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+log = "*"
 eframe = { version = "*", features = ["default"] }
 env_logger = { version = "*", features = ["auto-color", "humantime"] }
 
