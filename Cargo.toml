@@ -3,8 +3,13 @@ name = "cc"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+strip = true
+lto = true
+
 [dependencies]
 log = "*"
-eframe = { version = "*", features = ["default"] }
+eframe = { version = "^0.30", features = ["default"] }
+egui_extras = "^0.30"
 env_logger = { version = "*", features = ["auto-color", "humantime"] }
 
