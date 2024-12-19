@@ -1,7 +1,6 @@
 #![windows_subsystem = "windows"]
 
-use eframe::egui::{self, Align, Label, Layout, TextEdit};
-use egui_extras::{StripBuilder, Size};
+use eframe::egui::{self, Label, Sense, TextEdit};
 
 enum CalcDirection {
     StartAddressToMemory,
@@ -15,13 +14,29 @@ impl Default for CalcDirection {
 }
 
 #[derive(Default)]
-struct AreaData {
+struct LocData {
     comment: String,
-    base_addr: String,
     start_addr: String,
     offset_addr: String,
     memory_addr: String,
     direction: CalcDirection,
+}
+
+struct AreaData {
+    base_addr: String,
+    locations: Vec<LocData>,
+}
+
+impl Default for AreaData {
+    fn default() -> Self {
+        Self { base_addr: Default::default(), locations: vec![
+            Default::default(),
+            LocData {
+                direction: CalcDirection::MemoryToStartAddress,
+                ..Default::default()
+            }
+        ] }
+    }
 }
 
 struct CompilerCalc {
@@ -73,37 +88,29 @@ impl eframe::App for CompilerCalc {
             ui.add_space(10.);
 
             // Contents
-            ui.text_edit_singleline(&mut current_area.comment);
-            ui.horizontal(|ui| {
-                ui.vertical(|ui| {
-                    StripBuilder::new(ui).size(Size::exact(60.)).size(Size::remainder().at_least(80.))
-                    .horizontal(|mut strip| {
-                        strip.cell(|ui| {
-                            ui.label("FunAddr:");
-                        });
+            for loc_data in &mut current_area.locations {
+                ui.text_edit_singleline(&mut loc_data.comment);
+                ui.horizontal(|ui| {
+                    ui.label("FunAddr:");
+                    ui.add(TextEdit::singleline(&mut loc_data.start_addr).desired_width(80.));
+                    ui.label("Offset:");
+                    ui.add(TextEdit::singleline(&mut loc_data.offset_addr).desired_width(80.));
 
-                        strip.cell(|ui| {
-                            ui.add(TextEdit::singleline(&mut current_area.start_addr).desired_width(80.));
-                        });
-                    });
+                    let dir_text = match loc_data.direction {
+                        CalcDirection::StartAddressToMemory => "->",
+                        CalcDirection::MemoryToStartAddress => "<-",
+                    };
+                    if ui.add(Label::new(dir_text).selectable(false).sense(Sense::click())).clicked() {
+                        match loc_data.direction {
+                            CalcDirection::StartAddressToMemory => loc_data.direction = CalcDirection::MemoryToStartAddress,
+                            CalcDirection::MemoryToStartAddress => loc_data.direction = CalcDirection::StartAddressToMemory,
+                        }
+                    }
 
-                    StripBuilder::new(ui).size(Size::exact(60.)).size(Size::remainder().at_least(80.))
-                    .horizontal(|mut strip| {
-                        strip.cell(|ui| {
-                            ui.label("Offset:");
-                        });
-
-                        strip.cell(|ui| {
-                            ui.add(TextEdit::singleline(&mut current_area.offset_addr).desired_width(80.));
-                        });
-                    });
-                });
-
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    ui.add(TextEdit::singleline(&mut current_area.memory_addr).desired_width(80.));
                     ui.label("MemAddr:");
+                    ui.add(TextEdit::singleline(&mut loc_data.memory_addr).desired_width(80.));
                 });
-            });
+            }
         });
     }
 }
