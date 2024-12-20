@@ -2,6 +2,9 @@
 
 use eframe::egui::{self, Label, Sense, TextEdit};
 
+mod addr;
+use addr::*;
+
 enum CalcDirection {
     StartAddressToMemory,
     MemoryToStartAddress,
@@ -20,29 +23,6 @@ struct LocData {
     offset_addr: String,
     memory_addr: String,
     direction: CalcDirection,
-}
-
-trait GenericAddressString {
-    fn get_addr(&self) -> Option<u64>;
-}
-
-impl GenericAddressString for String {
-    fn get_addr(&self) -> Option<u64> {
-        let text = self.trim().to_lowercase();
-        let mut text = text.as_str();
-        let mut hex = !text.chars().all(|x| char::is_ascii_digit(&x));
-
-        if let Some(hex_str) = text.strip_prefix("0x") {
-            text = hex_str;
-            hex = true;
-        }
-
-        if hex {
-            u64::from_str_radix(text, 16).ok()
-        } else {
-            text.parse::<u64>().ok()
-        }
-    }
 }
 
 impl LocData {
@@ -136,6 +116,8 @@ impl Default for AreaData {
 }
 
 struct CompilerCalc {
+    info_loading_window_show: bool,
+    info_data: String,
     current_area_tab: usize,
     area_data: Vec<AreaData>,
 }
@@ -143,6 +125,8 @@ struct CompilerCalc {
 impl Default for CompilerCalc {
     fn default() -> Self {
         Self {
+            info_data: String::new(),
+            info_loading_window_show: false,
             current_area_tab: 0,
             area_data: vec![
                 Default::default(),
@@ -157,6 +141,23 @@ impl Default for CompilerCalc {
 
 impl eframe::App for CompilerCalc {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
+        if self.info_loading_window_show {
+            egui::Window::new("Import area base address")
+                .default_size([500., 400.])
+                .show(ctx, |ui| {
+                    ui.vertical(|ui| {
+                        ui.horizontal(|ui| {
+                            ui.label("Input area addresses:");
+                            if ui.button("Recognize").clicked() {
+                                self.info_loading_window_show = false;
+                            }
+                        });
+
+                        ui.text_edit_multiline(&mut self.info_data);
+                    });
+                });
+        }
+
         egui::CentralPanel::default().show(ctx, |ui| {
             // Areas
             ui.horizontal(|ui| {
@@ -169,6 +170,10 @@ impl eframe::App for CompilerCalc {
                 }
                 if ui.small_button("+").clicked() {
                     self.area_data.push(Default::default());
+                }
+                // Load button
+                if ui.button("Load areas...").clicked() {
+                    self.info_loading_window_show = true;
                 }
             });
 
@@ -186,7 +191,11 @@ impl eframe::App for CompilerCalc {
             ui.add_space(10.);
 
             // Contents
-            for loc_data in &mut current_area.locations {
+            for (index, loc_data) in &mut current_area.locations.iter_mut().enumerate() {
+                if index != 0 {
+                    ui.add_space(5.);
+                }
+
                 ui.horizontal(|ui| {
                     ui.label("Tips:");
                     ui.text_edit_singleline(&mut loc_data.comment);
