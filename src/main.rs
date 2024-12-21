@@ -1,9 +1,12 @@
 #![windows_subsystem = "windows"]
 
-use eframe::egui::{self, Label, Sense, TextEdit};
+use eframe::egui::{self, Align2, Label, Sense};
 
 mod addr;
 use addr::*;
+
+mod addr_input;
+use addr_input::AddrInput;
 
 enum CalcDirection {
     StartAddressToMemory,
@@ -19,9 +22,9 @@ impl Default for CalcDirection {
 #[derive(Default)]
 struct LocData {
     comment: String,
-    start_addr: String,
-    offset_addr: String,
-    memory_addr: String,
+    start_addr: AddrString,
+    offset_addr: AddrString,
+    memory_addr: AddrString,
     direction: CalcDirection,
 }
 
@@ -62,7 +65,7 @@ impl LocData {
             _ => return,
         };
 
-        self.memory_addr = format!("0x{:X}", mem_addr);
+        self.memory_addr.update_data(mem_addr);
     }
 
     fn update_function_data(&mut self, base_addr: u64) {
@@ -76,12 +79,12 @@ impl LocData {
             _ => return,
         };
 
-        self.start_addr = format!("0x{:X}", start_addr);
+        self.start_addr.update_data(start_addr);
     }
 }
 
 struct AreaData {
-    base_addr: String,
+    base_addr: AddrString,
     locations: Vec<LocData>,
 }
 
@@ -100,14 +103,24 @@ impl Default for AreaData {
         Self {
             base_addr: Default::default(),
             locations: vec![
-                Default::default(),
                 LocData {
-                    direction: CalcDirection::MemoryToStartAddress,
+                    start_addr: AddrString::default_decimal(),
                     ..Default::default()
                 },
-                Default::default(),
                 LocData {
+                    start_addr: AddrString::default_decimal(),
                     direction: CalcDirection::MemoryToStartAddress,
+                    memory_addr: AddrString::default_decimal(),
+                    ..Default::default()
+                },
+                LocData {
+                    start_addr: AddrString::default_decimal(),
+                    ..Default::default()
+                },
+                LocData {
+                    start_addr: AddrString::default_decimal(),
+                    direction: CalcDirection::MemoryToStartAddress,
+                    memory_addr: AddrString::default_decimal(),
                     ..Default::default()
                 },
             ],
@@ -143,6 +156,7 @@ impl eframe::App for CompilerCalc {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         if self.info_loading_window_show {
             egui::Window::new("Import area base address")
+                .anchor(Align2::CENTER_CENTER, [0., -50.])
                 .default_size([500., 400.])
                 .show(ctx, |ui| {
                     ui.vertical(|ui| {
@@ -185,7 +199,10 @@ impl eframe::App for CompilerCalc {
             // Area base address
             ui.horizontal(|ui| {
                 ui.label("Base Address:");
-                ui.add(TextEdit::singleline(&mut current_area.base_addr).desired_width(100.));
+                let mut input = AddrInput::new(&mut current_area.base_addr);
+                if ui.add(&mut input).clicked() {
+                    input.toggle_mode();
+                }
             });
 
             ui.add_space(10.);
@@ -202,9 +219,17 @@ impl eframe::App for CompilerCalc {
                 });
                 ui.horizontal(|ui| {
                     ui.label("FunAddr:");
-                    ui.add(TextEdit::singleline(&mut loc_data.start_addr).desired_width(100.));
+                    let mut start_input =
+                        AddrInput::new(&mut loc_data.start_addr).desired_width(80.);
+                    if ui.add(&mut start_input).clicked() {
+                        start_input.toggle_mode();
+                    }
                     ui.label("Offset:");
-                    ui.add(TextEdit::singleline(&mut loc_data.offset_addr).desired_width(40.));
+                    let mut offset_input =
+                        AddrInput::new(&mut loc_data.offset_addr).desired_width(50.);
+                    if ui.add(&mut offset_input).clicked() {
+                        offset_input.toggle_mode();
+                    }
 
                     let dir_text = loc_data.direction_text();
                     if ui
@@ -215,7 +240,11 @@ impl eframe::App for CompilerCalc {
                     }
 
                     ui.label("MemAddr:");
-                    ui.add(TextEdit::singleline(&mut loc_data.memory_addr).desired_width(100.));
+                    let mut mem_input =
+                        AddrInput::new(&mut loc_data.memory_addr).desired_width(80.);
+                    if ui.add(&mut mem_input).clicked() {
+                        mem_input.toggle_mode();
+                    }
                 });
             }
         });
