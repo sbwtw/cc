@@ -1,6 +1,6 @@
 #![windows_subsystem = "windows"]
 
-use eframe::egui::{self, Align2, Label, Sense};
+use eframe::egui::{self, Align2, Label, Margin, Sense};
 
 mod addr;
 use addr::*;
@@ -173,6 +173,8 @@ impl eframe::App for CompilerCalc {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            ui.spacing_mut().window_margin = Margin::ZERO;
+
             // Areas
             ui.horizontal(|ui| {
                 for i in 0..self.area_data.len() {
@@ -199,7 +201,7 @@ impl eframe::App for CompilerCalc {
             // Area base address
             ui.horizontal(|ui| {
                 ui.label("Base Address:");
-                let mut input = AddrInput::new(&mut current_area.base_addr);
+                let mut input = AddrInput::new(&mut current_area.base_addr).desired_width(150.);
                 if ui.add(&mut input).clicked() {
                     input.toggle_mode();
                 }
@@ -218,15 +220,17 @@ impl eframe::App for CompilerCalc {
                     ui.text_edit_singleline(&mut loc_data.comment);
                 });
                 ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing = [5., 5.].into();
+
                     ui.label("FunAddr:");
                     let mut start_input =
-                        AddrInput::new(&mut loc_data.start_addr).desired_width(80.);
+                        AddrInput::new(&mut loc_data.start_addr).desired_width(55.);
                     if ui.add(&mut start_input).clicked() {
                         start_input.toggle_mode();
                     }
                     ui.label("Offset:");
                     let mut offset_input =
-                        AddrInput::new(&mut loc_data.offset_addr).desired_width(50.);
+                        AddrInput::new(&mut loc_data.offset_addr).desired_width(40.);
                     if ui.add(&mut offset_input).clicked() {
                         offset_input.toggle_mode();
                     }
@@ -241,7 +245,7 @@ impl eframe::App for CompilerCalc {
 
                     ui.label("MemAddr:");
                     let mut mem_input =
-                        AddrInput::new(&mut loc_data.memory_addr).desired_width(80.);
+                        AddrInput::new(&mut loc_data.memory_addr).desired_width(150.);
                     if ui.add(&mut mem_input).clicked() {
                         mem_input.toggle_mode();
                     }
@@ -254,12 +258,11 @@ impl eframe::App for CompilerCalc {
 fn main() -> eframe::Result {
     env_logger::init();
 
-    let min_size = [450., 320.];
-    let prefer_size = [min_size[0] * 1.2, min_size[1] * 1.2];
+    let prefer_size = [530., 320.];
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size(prefer_size)
-            .with_min_inner_size(min_size),
+            .with_min_inner_size(prefer_size),
         ..Default::default()
     };
 
